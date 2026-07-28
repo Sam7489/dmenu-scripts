@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# this script opens dmenu list of songs from a directory and we can play 
+# any songs from the list on mpv
+# shortcut : ctrl+alt+m 
+
+FOLDER="/media/sam/New Volume/songs"
+
+openvid() {
+    NAME="$(ls "$FOLDER" | dmenu -i -c -l 15)" || exit 0
+    [ -z "$NAME" ] && exit 0
+
+    mpv --force-window --idle --loop "$FOLDER/$NAME" >/dev/null 2>&1 &
+}
+
+openvid

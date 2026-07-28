@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+# ─────────────────────────────────────────────────────────────────
+#  music — Control Spotify Web Player in a hidden Brave window
+#
+#  Usage:
+#    music play      → open Spotify (if not running) and play
+#    music pause     → pause playback
+#    music next      → skip to next track
+#    music prev      → go to previous track
+#    music stop      → close the hidden Brave Spotify window
+#    music status    → show whether Spotify window is running
+#
+#  Dependencies: xdotool wmctrl
+#    sudo apt install xdotool wmctrl
+# ─────────────────────────────────────────────────────────────────
+
+SPOTIFY_URL="https://open.spotify.com"
+WINDOW_TITLE="Spotify - Web Player"   # title fragment to identify the window
+BRAVE_BIN="brave-browser"             # or "brave" depending on your install
+
+# ── Helper: find the Brave Spotify window ID ─────────────────────
+find_spotify_window() {
+    #xdotool search --name "$WINDOW_TITLE" 2>/dev/null | head -1
+    wmctrl -lx | grep "spotify" | awk '{print $1}' | head -1
+}
+
+# ── Helper: send a key to the Spotify window without focusing it ──
+send_key() {
+    local win_id="$1"
+    local key="$2"
+    # windowactivate brings it to focus momentarily, then we minimise again
+    xdotool windowactivate --sync "$win_id"
+    xdotool key --window "$win_id" --clearmodifiers "$key"
+    # Immediately re-minimise so it stays out of the way
+    #xdotool windowminimize "$win_id"
+}
+
+# ── Helper: launch Spotify in a hidden Brave app window ──────────
+launch_spotify() {
+    echo "Launching Spotify web player in background..."
+    # --app flag opens a minimal chrome app window (no tabs bar, no address bar)
+    # We launch it and immediately minimise it
+    "$BRAVE_BIN" \
+        --new-window \
+        --app="$SPOTIFY_URL" \
+        --window-size=1,1 \
+        --window-position=0,0 \
+        > /dev/null 2>&1 &
+
+    # Wait for the window to appear (up to 15 seconds)
+    local win_id=""
+    local tries=0
+    echo -n "Waiting for Spotify window"
+    while [[ -z "$win_id" && $tries -lt 30 ]]; do
+        sleep 0.5
+        win_id=$(find_spotify_window)
+        echo -n "."
+        ((tries++))
+    done
+    echo ""
+
+    if [[ -z "$win_id" ]]; then
+        echo "❌ Could not find Spotify window after launch."
+        echo "   Make sure Brave is installed and Widevine/DRM is enabled:"
+        echo "   Open Brave → brave://settings/content/protectedContent → Enable"
+        exit 1
+    fi
+
+    # Minimise immediately so it runs silently in background
+    #xdotool windowminimize "$win_id"
+    echo "✅ Spotify running silently (window ID: $win_id)"
+
+    # Give Spotify a few seconds to load and auto-start
+    sleep 3
+}
+
+# ─────────────────────────────────────────────────────────────────
+#  MAIN
+# ─────────────────────────────────────────────────────────────────
+
+# Check dependencies
+for dep in xdotool wmctrl; do
+    if ! command -v "$dep" &>/dev/null; then
+        echo "❌ Missing dependency: $dep"
+        echo "   Install with: sudo apt install xdotool wmctrl"
+        exit 1
+    fi
+done
+
+# Check Brave is installed
+if ! command -v "$BRAVE_BIN" &>/dev/null; then
+    # Try alternate binary name
+    if command -v brave &>/dev/null; then
+        BRAVE_BIN="brave"
+    else
+        echo "❌ Brave browser not found. Is it installed?"
+        exit 1
+    fi
+fi
+
+COMMAND="${1:-help}"
+
+case "$COMMAND" in
+
+    play)
+        WIN=$(find_spotify_window)
+        if [[ -z "$WIN" ]]; then
+            launch_spotify
+            WIN=$(find_spotify_window)
+        fi
+
+        if [[ -n "$WIN" ]]; then
+            # Space = play/pause toggle in Spotify web player
+            send_key "$WIN" "space"
+            echo "▶ Playing"
+        else
+            echo "❌ Could not find Spotify window."
+        fi
+        ;;
+
+    pause)
+        WIN=$(find_spotify_window)
+        if [[ -z "$WIN" ]]; then
+            echo "ℹ  Spotify is not running. Use 'music play' to start."
+            exit 0
+        fi
+        send_key "$WIN" "space"
+        echo "⏸ Paused"
+        ;;
+
+    next)
+        WIN=$(find_spotify_window)
+        if [[ -z "$WIN" ]]; then
+            echo "ℹ  Spotify is not running. Use 'music play' to start."
+            exit 0
+        fi
+        # Ctrl+Right = next track in Spotify web player
+        send_key "$WIN" "ctrl+Right"
+        echo "⏭ Next track"
+        ;;
+
+    prev|previous)
+        WIN=$(find_spotify_window)
+        if [[ -z "$WIN" ]]; then
+            echo "ℹ  Spotify is not running. Use 'music play' to start."
+            exit 0
+        fi
+        # Ctrl+Left = previous track in Spotify web player
+        send_key "$WIN" "ctrl+Left"
+        echo "⏮ Previous track"
+        ;;
+
+    stop)
+        WIN=$(find_spotify_window)
+        if [[ -z "$WIN" ]]; then
+            echo "ℹ  Spotify is not running."
+            exit 0
+        fi
+        xdotool windowclose "$WIN"
+        echo "⏹ Spotify closed"
+        ;;
+
+    status)
+        WIN=$(find_spotify_window)
+        if [[ -n "$WIN" ]]; then
+            echo "✅ Spotify web player is running (window ID: $WIN)"
+        else
+            echo "⭕ Spotify web player is NOT running"
+        fi
+        ;;
+
+    help|--help|-h|*)
+        echo ""
+        echo "  music — Spotify Web Player controller"
+        echo ""
+        echo "  Commands:"
+        echo "    music play      Start Spotify (if needed) and play"
+        echo "    music pause     Pause playback"
+        echo "    music next      Skip to next track"
+        echo "    music prev      Go to previous track"
+        echo "    music stop      Close the Spotify window"
+        echo "    music status    Check if Spotify is running"
+        echo ""
+        ;;
+esac

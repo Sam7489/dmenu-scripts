@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# this script switches between audio output devices connected to the system
+# shortcut added to system:  ctrl+alt+a 
+
+headphones () { \
+	pactl set-default-sink "bluez_output.27_E6_50_2F_A3_91.1" &
+	notify-send -h string:bgcolor:#a3be8c "Audio switched to headphones!"
+}
+
+speakers () { \
+	pactl set-default-sink "alsa_output.pci-0000_00_1f.3.analog-stereo" &
+	notify-send -h string:bgcolor:#bf6161 "Audio switched to speakers!"
+}
+
+choosespeakers () { \
+	choice=$(printf "Speakers\\nHeadphones" | dmenu -c -l 2 -i -p "Audio Output: ")
+	case "$choice" in 
+		Speakers) speakers;;
+		Headphones) headphones;;
+	esac
+}
+
+choosespeakers
