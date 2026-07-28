@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+# this script take the most recent image from screenshots and scraps
+# the text from that image using ocr tool 
+
+SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
+
+LATEST_IMAGE=$(ls -t "$SCREENSHOT_DIR"/*.png 2>/dev/null | head -n 1)
+
+# check if a screenshot exists
+if [ -z "$LATEST_IMAGE" ]; then
+	echo "No Screenshots found."
+	exit 1
+fi 
+
+echo "Using: $(basename "$LATEST_IMAGE")"
+echo
+
+# Run ocr
+ocr "$LATEST_IMAGE"
