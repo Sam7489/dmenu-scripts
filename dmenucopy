@@ -1,0 +1,14 @@
+#!/usr/bin/env bash 
+
+# shows all the clipboard history , and lets select between them 
+# shortcut : ctrl+shift+v 
+
+history=$(qdbus org.kde.klipper /klipper \ 
+	org.kde.klipper.klipper.getClipboardHistoryMenu) 
+
+selection=$(printf "%s\n" "$history" | dmenu -i -c -l 10 -p "Clipboard") 
+
+[ -z "$selection" ] && exit 
+
+qdbus org.kde.klipper /klipper \ 
+	org.kde.klipper.klipper.setClipboardContents "$selection" 
