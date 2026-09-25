@@ -18,9 +18,9 @@ openvid() {
 
     if [ "$NAME" = "🎲 Random" ]; then
         NAME=$(find "$FOLDER" -maxdepth 1 -type f | shuf -n1)
-        mpv --force-window --idle --loop "$NAME" >/dev/null 2>&1 &
+        mpv --force-window --idle --loop --geometry=660x360+0+0 --ontop "$NAME" >/dev/null 2>&1 &
     else
-        mpv --force-window --idle --loop "$FOLDER/$NAME" >/dev/null 2>&1 &
+        mpv --force-window --idle --loop --geometry=640x360+0+0 --ontop "$FOLDER/$NAME" >/dev/null 2>&1 &
     fi
 }
 

@@ -1,16 +1,9 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash 
 
-# gives 4 options , to kill any ongoing task , to put system on stock sleep ,  to sleep 
-# and last to reboot the system 
-# shortcut added to system : ctrl+alt+z
+# opens kill menu and asks for any service to be killed 
 
+process=$(ps -u "$USER" -o pid=,comm= | dmenu -i -c -l 15 -p "Kill process:") 
+[ -z "$process" ] && exit 0 
+pid=$(awk '{print $1}' <<< "$process")
+kill "$pid"
 
-case "$(printf "kill\nzzz\nsleep\nreboot\nshutdown" | dmenu -i -c -l 5)" in 
-	kill) ps -u $USER -o pid,comm | dmenu -i -c -l 10 -p Kill: | awk '{print $1}' | xargs -r kill ;;
-	zzz) slock systemctl suspend -i ;; 
-	sleep) systemctl suspend ;; 
-	reboot) systemctl reboot -i ;;
-	shutdown) shutdown now ;; 
-	*) exit 1 ;; 
-
-esac
